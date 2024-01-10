@@ -2,11 +2,9 @@ FROM alpine:latest
 
 WORKDIR /usr/src/app
 
-RUN apk update && apk add python3 py-pip
+RUN apk update && apk add python3 py3-flask
 
 COPY requirements.txt ./
-RUN python3 -m venv /path/to/venv
-RUN . /path/to/venv/bin/activate
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py ./
