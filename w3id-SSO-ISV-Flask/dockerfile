@@ -1,0 +1,15 @@
+FROM alpine:latest
+
+WORKDIR /usr/src/app
+
+RUN apk update && apk add python3 py-pip py3-cryptography
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py ./
+
+COPY . .
+
+# Run the Flask application
+CMD [ "python3", "app.py"]
