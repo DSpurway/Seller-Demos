@@ -1,4 +1,5 @@
 gunicorn
 Flask
 flask_oidc
+Rust
 bs4
