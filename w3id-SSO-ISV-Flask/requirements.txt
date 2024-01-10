@@ -1,5 +1,4 @@
 gunicorn
 Flask
 flask_oidc
-python36-cryptography
 bs4
