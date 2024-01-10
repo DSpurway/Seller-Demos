@@ -4,8 +4,12 @@ WORKDIR /usr/src/app
 
 RUN apk update && apk add python3 py3-flask py3-pip
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+#COPY requirements.txt ./
+#RUN pip install --no-cache-dir -r requirements.txt
+
+RUN python3 -m venv /path/to/venv
+RUN . /path/to/venv/bin/activate
+RUN pip install Flask flask_oidc
 
 COPY app.py ./
 
