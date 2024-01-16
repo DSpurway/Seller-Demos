@@ -1,0 +1,12 @@
+{
+  "name": "seller-demos-chatbot",
+  "version": "1.0.1",
+  "description": "Node.js application for Node-RED based chatbot",
+  "dependencies": {
+    "node-red": "*",
+    "node-red-node-watson": "*"
+  },
+  "scripts": {
+      "start": "node --max-old-space-size=384 node_modules/node-red/red.js seller-demos.json --port 8080"
+      }
+}
