@@ -1,1 +1,872 @@
-[{"id":"ac6e16ef.6f7d8","type":"tab","label":"Front End Flow","disabled":false,"info":"What this is intended to do is help answer a question I and my colleagues get asked a lot, which is \"When does this IBM Power System stop being sold/reach end of support?\".\r\n\r\nSo, my first pass at this helps answer that question.\r\n\r\nI am running this version in a Docker Container on an IBM Power System.\r\n\r\nIt should also work elsewhere, but you will need the Python scripts and the libraries they use installed in your image."},{"id":"edef9f35.fed93","type":"tab","label":"Checking for Options","disabled":false,"info":""},{"id":"ab8dd706.ad22d","type":"tab","label":"Format output","disabled":false,"info":""},{"id":"17c22889.b7099f","type":"http in","z":"ac6e16ef.6f7d8","name":"BOT Home Page","url":"/bot","method":"get","upload":false,"swaggerDoc":"","x":100,"y":760,"wires":[["b994087e.93aa2"]]},{"id":"4de6563d.9e174","type":"template","z":"ac6e16ef.6f7d8","name":"HTML","field":"payload","fieldType":"msg","format":"handlebars","syntax":"mustache","template":"<!--\n# Copyright 2018 IBM\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n-->\n\n<html>\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>\n\t  My BOT\n    </title>\n    <style>\n        {{{payload.style}}}\n    </style>\n  </head>\n  <body>\n\n    <div class=\"main\">\n      <div id=\"no-script\"class=\"bg-info\">\n        This application needs JavaScript enabled in your browser!\n      </div>\n      <div id=\"id_contextdump\"></div>\n\n      <h1>My BOT</h1>\n      <div id=id_botchathistory>\n\t  </div>\n\t  \n\t  <div class =\"input\">\n\t      <form>\n            <label for=\"id_chattext\">Your Input: </label>\n            <input type=\"text\" name=\"chattext\" id=\"id_chattext\">\n          </form>\n\t      <button onclick=\"javascript:onChatClick()\" id=\"id_enter\">Send</button>\n\t  </div>\n    </div>\n    \n    <script type=\"text/javascript\" src=\"https://code.jquery.com/jquery-2.1.4.min.js\"></script>\n    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js\"></script>\n\n    <script>{{{payload.script}}}</script>\n  </body>\n</html>\n","x":710,"y":760,"wires":[["78fa1851.30e2c"]]},{"id":"78fa1851.30e2c","type":"http response","z":"ac6e16ef.6f7d8","name":"","statusCode":"","headers":{},"x":870,"y":760,"wires":[]},{"id":"16f9794.a9b9187","type":"http in","z":"ac6e16ef.6f7d8","name":"BOT REST API","url":"/botchat","method":"post","upload":false,"swaggerDoc":"","x":120,"y":200,"wires":[["9b752296.c42dd8"]]},{"id":"636050ff.385e58","type":"http response","z":"ac6e16ef.6f7d8","name":"","statusCode":"","headers":{},"x":1090,"y":580,"wires":[]},{"id":"15c1a601.086dda","type":"function","z":"ac6e16ef.6f7d8","name":"Post Service Processing","func":"var request=global.get('request');\nmsg.req= {};\nmsg.req=request;\n\nvar response=global.get('response');\nmsg.res= {};\nmsg.res=response;\n\nvar params=global.get('params');\nmsg.params= {};\nmsg.params=params;\n\nvar mydata=global.get('mydata'); \nmsg.mydata = {};\nmsg.mydata=mydata;\nmsg.mydata.messageout = msg.payload;\n\nvar assist_out=global.get('assist_out');\nmsg.assist_out = {};\nmsg.assist_out=assist_out;\n\nvar lifecycle_date=assist_out.context.Lifecycle_date;\nmsg.lifecycle_date={};\nmsg.lifecycle_date=lifecycle_date;\n\nreturn msg;","outputs":1,"noerr":0,"x":290,"y":480,"wires":[["10943d45.8a3e63"]]},{"id":"34486d01.e586ba","type":"template","z":"ac6e16ef.6f7d8","name":"JavaScript","field":"payload.script","fieldType":"msg","format":"javascript","syntax":"mustache","template":"$(document).ready(function() {\n    javascriptCheck();\n    $('#id_contextdump').hide();\n    enterbutton();\n    invokeAjax (\"Hello\");\n});\n\n// if javascript is enabled on the browser then can remove the warning message\nfunction javascriptCheck() {\n    $('#no-script').remove();\n}\n\n// creates div for interaction with bot      \nfunction createNewDiv(who, message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    if (who == \"Bot\") {\n        emoji = \"&#129302 Bot\";\n        html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    }\n    else if (who == \"Error\") {\n        emoji = \"&#128165 Error\";\n        html += '<div class=\"erricon\">' + emoji + '</div><div class=\"errspeak\">';\n    }\n    else if (who == \"You\") {\n        emoji = \"&#129489 You\";\n        html += '<div class=\"youicon\">' + emoji + '</div><div class=\"youspeak\">';\n    }\n    html +=  message;\n    html += '</div></div>'\n    return html;\n}\n\n// appends latest communication with bot to botchathistory\nfunction chat(person, txt) {\n    $('#id_botchathistory').append(createNewDiv(person, txt));\n}    \n\n// sets pressing of enter key to perform same action as send button\nfunction enterbutton(){\n    $(function() {\n        $(\"form input\").keypress(function (e) {\n        if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {\n             $('#id_enter').click();\n             return false;\n        } else {\n        return true;\n        }\n     });\n    });\n}\n\n// User has entered some text.\nfunction onChatClick() {\n    var txt = $('#id_chattext').val();\n    chat('You', txt); \n    invokeAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction processOK(response) {\n    console.log(response);\n    console.log(response.botresponse.messageout);\n    console.log(response.botresponse.messageout.output.text);\n    console.log(response.botresponse.messageout.context);\n    chat('Bot', response.botresponse.messageout.output.text); \n    $('#id_contextdump').data('convContext', response.botresponse.messageout.context);\n}\n      \nfunction processNotOK() {\n    chat('Error', 'Error whilst attempting to talk to Bot');\n}\n      \nfunction invokeAjax(message) {\n    var contextdata = $('#id_contextdump').data('convContext');\n    console.log('checking stashed context data');\n    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n    if (contextdata) {\n        ajaxData.context = contextdata;    \n    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'botchat',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}","output":"str","x":530,"y":760,"wires":[["4de6563d.9e174"]]},{"id":"217f70e5.991b58","type":"comment","z":"ac6e16ef.6f7d8","name":"Conversation BOT Template","info":"","x":139,"y":719,"wires":[]},{"id":"6cdc89f2.8e9578","type":"comment","z":"ac6e16ef.6f7d8","name":"Conversation REST API","info":"","x":140,"y":140,"wires":[]},{"id":"5744f031.d89bd","type":"change","z":"ac6e16ef.6f7d8","name":"Pass only MTM to scripts","rules":[{"t":"set","p":"payload.mtm","pt":"msg","to":"payload.context.Server_MTM","tot":"msg"}],"action":"","property":"","from":"","to":"","reg":false,"x":170,"y":360,"wires":[["b011fb49.096d6"]]},{"id":"24a52712.69a648","type":"switch","z":"ac6e16ef.6f7d8","name":"Check for unannounced dates","property":"payload","propertyType":"msg","rules":[{"t":"eq","v":"-","vt":"str"},{"t":"else"}],"checkall":"false","repair":false,"outputs":2,"x":810,"y":480,"wires":[["b83a7d0d.5c96a"],["2559722e.91ecbe"]]},{"id":"5027a1a0.7d2838","type":"switch","z":"ac6e16ef.6f7d8","name":"Check intent","property":"intent","propertyType":"msg","rules":[{"t":"eq","v":"Greeting","vt":"str"},{"t":"eq","v":"Check_Date","vt":"str"}],"checkall":"false","repair":false,"outputs":2,"x":870,"y":240,"wires":[["17097a49.77ce86"],["327ecbb2.902ff4"]]},{"id":"2c8c613d.7739ee","type":"function","z":"ac6e16ef.6f7d8","name":"Pull out intent","func":"var intent=msg.payload.intents[0].intent;\nmsg.intent={};\nmsg.intent=intent\n\nreturn msg;","outputs":1,"noerr":0,"x":700,"y":240,"wires":[["5027a1a0.7d2838"]]},{"id":"68cb668c.0bfb48","type":"watson-conversation-v1","z":"ac6e16ef.6f7d8","name":"IBM Power Systems Helper","workspaceid":"","multiuser":false,"context":true,"empty-payload":false,"default-endpoint":false,"service-endpoint":"","timeout":"","optout-learning":false,"x":480,"y":240,"wires":[["2c8c613d.7739ee"]]},{"id":"9b752296.c42dd8","type":"link out","z":"ac6e16ef.6f7d8","name":"Bot REST API Out","links":["413222ed.14df9c"],"x":255,"y":200,"wires":[]},{"id":"66869824.54f848","type":"switch","z":"edef9f35.fed93","name":"Check for option","property":"option","propertyType":"global","rules":[{"t":"eq","v":"yes","vt":"str"},{"t":"else"}],"checkall":"false","repair":false,"outputs":2,"x":320,"y":100,"wires":[["c391cbc9.a83be"],["169bee2b.ed4efa"]]},{"id":"169bee2b.ed4efa","type":"function","z":"edef9f35.fed93","name":"Pre Service Processing","func":"msg.mydata = {};\nmsg.mydata.messagein = msg.req.body.msgdata;\nmsg.payload = msg.mydata.messagein;\n\nmsg.params = { \"context\": msg.req.body.context};\nmsg.params.apikey = env.get('ASSISTANT_APIKEY');\nmsg.params.workspace_id = env.get('ASSISTANT_WORKSPACE_ID');\nmsg.params.endpoint = env.get('ASSISTANT_ENDPOINT');\n\nglobal.set(\"mydata\",{});\nglobal.set(\"mydata\",msg.mydata);\nglobal.set(\"params\",{});\nglobal.set(\"params\",msg.params);\nglobal.set(\"request\",{});\nglobal.set(\"request\",msg.req);\nglobal.set(\"response\",{});\nglobal.set(\"response\",msg.res);\n\nreturn msg;","outputs":1,"noerr":0,"x":570,"y":140,"wires":[["97c2266a.6186b8"]]},{"id":"c391cbc9.a83be","type":"function","z":"edef9f35.fed93","name":"Form input from previous input","func":"msg.params = {};\nmsg.params.apikey = env.get('ASSISTANT_APIKEY');\nmsg.params.workspace_id = env.get('ASSISTANT_WORKSPACE_ID');\nmsg.params.endpoint = env.get('ASSISTANT_ENDPOINT');\n\nvar Lifecycle_date=msg.payload.context.Lifecycle_date;\n\nmsg.mydata = {};\nmsg.mydata.messagein = msg.req.body.msgdata;\nvar Server_MTM=msg.mydata.messagein;\n\nmsg.payload = \"When was the \" +Lifecycle_date +\" date for the \" +Server_MTM +\"?\";\n\nglobal.set(\"mydata\",msg.mydata);\nglobal.set(\"params\",msg.params);\nglobal.set(\"request\",msg.req);\nglobal.set(\"response\",msg.res);\nglobal.set(\"option\",\"\");\n\nreturn msg;","outputs":1,"noerr":0,"x":590,"y":60,"wires":[["97c2266a.6186b8"]]},{"id":"413222ed.14df9c","type":"link in","z":"edef9f35.fed93","name":"Bot REST API In","links":["9b752296.c42dd8"],"x":195,"y":100,"wires":[["66869824.54f848"]]},{"id":"62e80014.c95b6","type":"link in","z":"ac6e16ef.6f7d8","name":"Initial Check for previous Option In","links":["97c2266a.6186b8"],"x":55,"y":240,"wires":[["84672a90.5808b8"]]},{"id":"97c2266a.6186b8","type":"link out","z":"edef9f35.fed93","name":"Initial Check for previous Option out","links":["62e80014.c95b6"],"x":820,"y":100,"wires":[]},{"id":"17097a49.77ce86","type":"link out","z":"ac6e16ef.6f7d8","name":"Intent \"Greeting\" format out","links":["66c0a868.2c828"],"x":975,"y":220,"wires":[]},{"id":"3786a4f1.bc751c","type":"function","z":"ab8dd706.ad22d","name":"Set botresponse","func":"msg.mydata.messageout = msg.payload;\n\nmsg.payload = {};\nmsg.payload.botresponse = msg.mydata;\n\nreturn msg;","outputs":1,"noerr":0,"x":340,"y":120,"wires":[["8bcd21e6.b8074"]]},{"id":"66c0a868.2c828","type":"link in","z":"ab8dd706.ad22d","name":"Intent \"Welcome\" format in","links":["17097a49.77ce86"],"x":195,"y":120,"wires":[["3786a4f1.bc751c"]]},{"id":"a36a9e80.7722f8","type":"link in","z":"ac6e16ef.6f7d8","name":"Output to webpage in","links":["70bef5a9.d64a04"],"x":995,"y":580,"wires":[["636050ff.385e58"]]},{"id":"70bef5a9.d64a04","type":"link out","z":"ab8dd706.ad22d","name":"Output to webpage out","links":["a36a9e80.7722f8"],"x":935,"y":200,"wires":[]},{"id":"8bcd21e6.b8074","type":"template","z":"ab8dd706.ad22d","name":"HTML Template adds blog link","field":"payload.botresponse.messageout.output.text","fieldType":"msg","format":"handlebars","syntax":"mustache","template":"{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n<p>You may also find this blog useful, about how those older IBM Power Systems were great, but the time has come to move up to POWER9! You can access that\n<a target=\"_blank\" href=\"https://www.linkedin.com/pulse/those-older-ibm-power-systems-were-great-time-has-come-david-spurway\">here</a>.</p>","output":"str","x":590,"y":120,"wires":[["70bef5a9.d64a04"]]},{"id":"327ecbb2.902ff4","type":"link out","z":"ac6e16ef.6f7d8","name":"Intent \"Check_Date\" out","links":["5a4536dd.296ad"],"x":975,"y":260,"wires":[]},{"id":"5a4536dd.296ad","type":"link in","z":"edef9f35.fed93","name":"Intent \"Check_Date\" in","links":["327ecbb2.902ff4"],"x":195,"y":200,"wires":[["5e3bdd14.92b4e4"]]},{"id":"5e3bdd14.92b4e4","type":"function","z":"edef9f35.fed93","name":"Store Assistant Output","func":"// stash away incoming data\nglobal.set(\"assist_out\",{});\nglobal.set(\"assist_out\",msg.payload);\n\nreturn msg;","outputs":1,"noerr":0,"x":340,"y":200,"wires":[["543780be.dec2a"]]},{"id":"543780be.dec2a","type":"switch","z":"edef9f35.fed93","name":"1st Check for option","property":"payload.output.generic[2].response_type","propertyType":"msg","rules":[{"t":"eq","v":"option","vt":"str"},{"t":"else"}],"checkall":"false","repair":false,"outputs":2,"x":580,"y":200,"wires":[["cc955e0e.876518"],["80a2c81d.c73bd"]]},{"id":"80a2c81d.c73bd","type":"switch","z":"edef9f35.fed93","name":"2nd Check for option","property":"payload.output.generic[3].response_type","propertyType":"msg","rules":[{"t":"eq","v":"option","vt":"str"},{"t":"else"}],"checkall":"false","repair":false,"outputs":2,"x":840,"y":220,"wires":[["1e6f461d.74daaa"],["24f9f436.679754"]]},{"id":"cc955e0e.876518","type":"function","z":"edef9f35.fed93","name":"Add options to response","func":"msg.payload.output.generic[2].options.forEach(function(element) {\n    var option_text = (element).label\n    \n    msg.payload.output.text.push(option_text)\n});\n\nreturn msg;","outputs":1,"noerr":0,"x":1150,"y":200,"wires":[["7769931b.1c794c"]]},{"id":"1e6f461d.74daaa","type":"function","z":"edef9f35.fed93","name":"Add options to response","func":"msg.payload.output.generic[3].options.forEach(function(element) {\n    var option_text = (element).label\n    \n    msg.payload.output.text.push(option_text)\n});\n\nreturn msg;","outputs":1,"noerr":0,"x":1150,"y":240,"wires":[["7769931b.1c794c"]]},{"id":"7769931b.1c794c","type":"function","z":"edef9f35.fed93","name":"Record if option needed","func":"// stash away incoming data\nglobal.set(\"option\",\"yes\");\n\nreturn msg;","outputs":1,"noerr":0,"x":1490,"y":220,"wires":[["4b4f9cad.d2547c"]]},{"id":"4b4f9cad.d2547c","type":"link out","z":"edef9f35.fed93","name":"Intent \"Check_Date\" with option format out","links":["f233b088.c20ae8"],"x":1655,"y":220,"wires":[]},{"id":"24f9f436.679754","type":"link out","z":"edef9f35.fed93","name":"Intent \"Check_Date\" first pass out","links":["320fb116.a4328e"],"x":1055,"y":280,"wires":[]},{"id":"320fb116.a4328e","type":"link in","z":"ac6e16ef.6f7d8","name":"Intent \"Check_Date\" first pass in","links":["24f9f436.679754"],"x":975,"y":300,"wires":[["5744f031.d89bd"]]},{"id":"f233b088.c20ae8","type":"link in","z":"ab8dd706.ad22d","name":"Intent \"Check_Date\" with option format in","links":["4b4f9cad.d2547c"],"x":195,"y":200,"wires":[["159b98a8.ec219f"]]},{"id":"159b98a8.ec219f","type":"function","z":"ab8dd706.ad22d","name":"Set botresponse","func":"msg.mydata.messageout = msg.payload;\n\nmsg.payload = {};\nmsg.payload.botresponse = msg.mydata;\n\nmsg.response_text = {};\nmsg.response_text = msg.payload.botresponse.messageout.output.generic[0].text\nmsg.response_text = msg.response_text +\" and \" +msg.payload.botresponse.messageout.output.generic[1].text\n\nmsg.title ={};\nmsg.title = msg.payload.botresponse.messageout.output.generic[2].title\n\nmsg.options = {};\nmsg.options = msg.mydata.messageout.output.generic[2].options;\n\nreturn msg;","outputs":1,"noerr":0,"x":340,"y":200,"wires":[["679371e9.d81638"]]},{"id":"679371e9.d81638","type":"template","z":"ab8dd706.ad22d","name":"HTML Template","field":"payload.botresponse.messageout.output.text","fieldType":"msg","format":"handlebars","syntax":"mustache","template":"{{#response_text}}\n<br>{{.}}\n{{/response_text}}\n{{title}}\n{{#options}}\n<br>\n<button onclick='document.getElementById(\"id_chattext\").value=\"{{value.input.text}}\";onChatClick();'>{{label}}</button>\n{{/options}}","output":"str","x":620,"y":200,"wires":[["70bef5a9.d64a04"]]},{"id":"feb6bafb.c6ded8","type":"debug","z":"ac6e16ef.6f7d8","name":"","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","targetType":"full","x":2020,"y":380,"wires":[]},{"id":"a2ec52b9.432e3","type":"change","z":"ac6e16ef.6f7d8","name":"Record URL","rules":[{"t":"set","p":"sales_manual_url","pt":"global","to":"payload","tot":"msg"}],"action":"","property":"","from":"","to":"","reg":false,"x":130,"y":400,"wires":[["879f34d6.f8cc98"]]},{"id":"dcd0690f.27bd9","type":"link out","z":"ac6e16ef.6f7d8","name":"Missing Sales Manual format in","links":["e017ecdd.715cd8"],"x":1015,"y":380,"wires":[]},{"id":"e017ecdd.715cd8","type":"link in","z":"ab8dd706.ad22d","name":"Missing Sales Manual format out","links":["dcd0690f.27bd9"],"x":195,"y":260,"wires":[["dad2df43.db9c7"]]},{"id":"2aa1f2b5.9daede","type":"function","z":"ab8dd706.ad22d","name":"Set botresponse","func":"msg.mydata.messageout = msg.assist_out;\n\nmsg.payload = {};\nmsg.payload.botresponse = msg.mydata;\n\nerror_message = \" is that the Sales Manual for that server appears to be missing. That means I can't get the dates for that server. Sorry about that!\"\n\nmsg.payload.botresponse.messageout.output.text.push(error_message);\n\nmsg.params = {\n    context : {}\n}\n\nreturn msg;","outputs":1,"noerr":0,"x":600,"y":260,"wires":[["203ea74c.d2f4"]]},{"id":"ddf37d16.6778e8","type":"template","z":"ab8dd706.ad22d","name":"HTML Template add Offering Info URL","field":"payload.botresponse.messageout.output.text","fieldType":"msg","format":"handlebars","syntax":"mustache","template":"{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n<p>You may may want to check yourself, by searching on the IBM Offering Information site. You can access that\n<a target=\"_blank\" href=\"https://www-01.ibm.com/common/ssi/SearchResult.wss?request_locale=en\">here</a>.</p>","output":"str","x":650,"y":320,"wires":[["70bef5a9.d64a04"]]},{"id":"203ea74c.d2f4","type":"function","z":"ab8dd706.ad22d","name":"Concatonate text","func":"output = msg.payload.botresponse.messageout.output.text\nmsg.payload.botresponse.messageout.output.text = []\nmsg.payload.botresponse.messageout.output.text[0] = output.join(' ')\n\nreturn msg;","outputs":1,"noerr":0,"x":350,"y":320,"wires":[["ddf37d16.6778e8"]]},{"id":"b83a7d0d.5c96a","type":"link out","z":"ac6e16ef.6f7d8","name":"No Date format out","links":["419b544b.36d5b4"],"x":975,"y":460,"wires":[]},{"id":"74a484ce.cf91dc","type":"function","z":"ab8dd706.ad22d","name":"No date yet announced","func":"msg.payload = \" is that there is no published \" +msg.lifecycle_date +\" date in the Sales Manual for the \" +msg.assist_out.context.Server_MTM +\" so that date has not been announced yet.\"\nreturn msg;","outputs":1,"noerr":0,"x":370,"y":400,"wires":[["e66f5772.837e5"]]},{"id":"419b544b.36d5b4","type":"link in","z":"ab8dd706.ad22d","name":"No Date format in","links":["b83a7d0d.5c96a"],"x":195,"y":400,"wires":[["74a484ce.cf91dc"]]},{"id":"e66f5772.837e5","type":"function","z":"ab8dd706.ad22d","name":"Set botresponse","func":"msg.mydata.messageout = msg.assist_out;\n\nvar result_date=msg.payload;\n\nmsg.payload = {};\nmsg.payload.botresponse = msg.mydata;\n\nmsg.payload.botresponse.messageout.output.text.push(result_date);\n\nmsg.params = {\n    context : {}\n}\n\nreturn msg;","outputs":1,"noerr":0,"x":580,"y":460,"wires":[["363b2761.d54448"]]},{"id":"bdf5651e.13035","type":"template","z":"ab8dd706.ad22d","name":"HTML Template add Sales Manual URL","field":"payload.botresponse.messageout.output.text","fieldType":"msg","format":"handlebars","syntax":"mustache","template":"{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n{{#payload.botresponse.messageout.output.URL}}\n<p>You may may want to check yourself, by reading the Sales Manual page for that server. You can access that\n<a target=\"_blank\" href={{.}}>here</a>.</p>\n{{/payload.botresponse.messageout.output.URL}}","output":"str","x":840,"y":520,"wires":[["70bef5a9.d64a04"]]},{"id":"363b2761.d54448","type":"function","z":"ab8dd706.ad22d","name":"Concatonate text","func":"output = msg.payload.botresponse.messageout.output.text\nmsg.payload.botresponse.messageout.output.text = []\nmsg.payload.botresponse.messageout.output.text[0] = output.join(' ')\n\nreturn msg;","outputs":1,"noerr":0,"x":790,"y":460,"wires":[["ad5ef8a.fd83988"]]},{"id":"ad5ef8a.fd83988","type":"function","z":"ab8dd706.ad22d","name":"Restore URL","func":"var URL=global.get('sales_manual_url');\nmsg.payload.botresponse.messageout.output.URL= \"\";\nmsg.payload.botresponse.messageout.output.URL=URL;\n\nreturn msg;","outputs":1,"noerr":0,"x":570,"y":520,"wires":[["bdf5651e.13035"]]},{"id":"2559722e.91ecbe","type":"link out","z":"ac6e16ef.6f7d8","name":"Date found format out","links":["69170047.b75308"],"x":975,"y":500,"wires":[]},{"id":"60464b17.baa71c","type":"function","z":"ab8dd706.ad22d","name":"Phrase text of response","func":"msg.payload = \" is that the published \" +msg.lifecycle_date +\" date in the Sales Manual for the \" +msg.assist_out.context.Server_MTM +\" is \" +msg.payload +\".\"\nreturn msg;","outputs":1,"noerr":0,"x":370,"y":460,"wires":[["e66f5772.837e5"]]},{"id":"69170047.b75308","type":"link in","z":"ab8dd706.ad22d","name":"Date found format in","links":["2559722e.91ecbe"],"x":195,"y":460,"wires":[["60464b17.baa71c"]]},{"id":"91d1570e.c2c558","type":"function","z":"ab8dd706.ad22d","name":"Merge lines 1 & 2","func":"output = msg.payload.botresponse.messageout.output.text[0] +msg.payload.botresponse.messageout.output.text[1]\nmsg.payload.botresponse.messageout.output.text = []\nmsg.payload.botresponse.messageout.output.text[0] = output\n\nreturn msg;","outputs":1,"noerr":0,"x":530,"y":40,"wires":[[]]},{"id":"34dfc367.89d68c","type":"http in","z":"ac6e16ef.6f7d8","name":"Healthcheck URL","url":"/healthz","method":"get","upload":false,"swaggerDoc":"","x":100,"y":860,"wires":[["8b2314a3.f7adf"]]},{"id":"2c990b94.1acf3c","type":"http response","z":"ac6e16ef.6f7d8","name":"","statusCode":"","headers":{},"x":470,"y":860,"wires":[]},{"id":"8b2314a3.f7adf","type":"template","z":"ac6e16ef.6f7d8","name":"","field":"payload","fieldType":"msg","format":"handlebars","syntax":"mustache","template":"ok","output":"str","x":300,"y":860,"wires":[["2c990b94.1acf3c"]]},{"id":"a5338fe4.fce08","type":"comment","z":"ac6e16ef.6f7d8","name":"Healthcheck endpoint","info":"","x":120,"y":820,"wires":[]},{"id":"b011fb49.096d6","type":"function","z":"ac6e16ef.6f7d8","name":"Set URL for SMFINDER APP","func":"var mtm = msg.payload.mtm;\nvar host = env.get('SMFINDER_WEBAPP_SERVICE_HOST');\nvar port = env.get('SMFINDER_WEBAPP_SERVICE_PORT');\nmsg.url = \"http://\" + host + \":\" + port + \"/?mtm=\" + mtm;\nreturn msg;","outputs":1,"noerr":0,"x":420,"y":360,"wires":[["50c0dbba.dd0c8c"]]},{"id":"50c0dbba.dd0c8c","type":"http request","z":"ac6e16ef.6f7d8","name":"","method":"GET","ret":"txt","paytoqs":false,"url":"","tls":"","persist":false,"proxy":"","authType":"","x":630,"y":360,"wires":[["a2ec52b9.432e3"]]},{"id":"b7919492.5ecb18","type":"function","z":"ac6e16ef.6f7d8","name":"Set URL for SMREADER APP","func":"var url = msg.payload;\nvar host = env.get('SMREADER_WEBAPP_SERVICE_HOST');\nvar port = env.get('SMREADER_WEBAPP_SERVICE_PORT');\nmsg.url = \"http://\" + host + \":\" + port + \"/?url=\" + url;\nreturn msg;","outputs":1,"noerr":0,"x":650,"y":420,"wires":[["ce5c0e4f.341c8"]]},{"id":"ce5c0e4f.341c8","type":"http request","z":"ac6e16ef.6f7d8","name":"","method":"GET","ret":"txt","paytoqs":false,"url":"","tls":"","persist":false,"proxy":"","authType":"","x":870,"y":420,"wires":[["9b946ae0.e6d8d8"]]},{"id":"879f34d6.f8cc98","type":"switch","z":"ac6e16ef.6f7d8","name":"Check for missing Sales Manual","property":"payload","propertyType":"msg","rules":[{"t":"eq","v":"Not found","vt":"str"},{"t":"else"}],"checkall":"true","repair":false,"outputs":2,"x":370,"y":400,"wires":[["dcd0690f.27bd9"],["b7919492.5ecb18"]]},{"id":"10943d45.8a3e63","type":"function","z":"ac6e16ef.6f7d8","name":"Get appropriate date value","func":"switch(msg.lifecycle_date) {\n    case \"Announcement\":\n        msg.payload = msg.payload.announce;\n        break;\n    case \"Generally Available\":\n        msg.payload = msg.payload.available;\n        break;\n    case \"Withdrawn from Marketing\":\n        msg.payload = msg.payload.wdfm;\n        break;\n    case \"EoS\":\n        msg.payload = msg.payload.eos;\n        break;\n}\nreturn msg;","outputs":1,"noerr":0,"x":540,"y":480,"wires":[["24a52712.69a648"]]},{"id":"b994087e.93aa2","type":"template","z":"ac6e16ef.6f7d8","name":"Stylesheet","field":"payload.style","fieldType":"msg","format":"javascript","syntax":"mustache","template":"body {\n    font-size: 1em;\n    font-family: Arial, Helvetica, sans-serif;\n}\nh1 {\n    font-size: 2.5em;\n    color: black;\n    padding: 10px;\n}\n.main {\n    max-width: 800px;\n    background-color:#cccccc;\n    border: 2px solid #222222;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 50px;\n}\n.container {\n    border: 2px solid #333333;\n    background-color: #eeeeee;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 10px;\n}\nlabel {\n    margin: 20px 10px;\n}\ninput {\n    min-width: 60%;\n    padding: 5px;\n    margin: 5px;\n}\n.input {\n    text-align: center;\n}\n.container::after {\n    content: \"\";\n    clear: both;\n    display: table;\n}\n.boticon {\n    font-size: 2em;\n    width: 100px;\n    float: left;\n}\n.botspeak {\n    padding: 0px;\n    display: inline-block;\n    max-width: 80%;\n}\n.youicon {\n    font-size: 2em;\n    width: 100px;\n    float: right;\n    text-align: right;\n}\n.youspeak {\n    padding: 0px;\n    text-align: right;\n}\n.erricon {\n    font-size: 2em;\n    width: 200px;\n    float: left;\n    color: red;\n}\n.errspeak {\n    padding: 0px;\n    color: darkred;\n    display: inline-block;\n    max-width: 60%;\n}\nbutton {\n    min-width: 60%;\n    border-radius: 5px;\n    padding: 5px;\n    margin: 5px;\n    background-color: #dddddd;\n    color: black;\n}","output":"str","x":330,"y":760,"wires":[["34486d01.e586ba"]]},{"id":"dad2df43.db9c7","type":"function","z":"ab8dd706.ad22d","name":"Post Service Processing","func":"var request=global.get('request');\nmsg.req= {};\nmsg.req=request;\n\nvar response=global.get('response');\nmsg.res= {};\nmsg.res=response;\n\nvar params=global.get('params');\nmsg.params= {};\nmsg.params=params;\n\nvar mydata=global.get('mydata'); \nmsg.mydata = {};\nmsg.mydata=mydata;\nmsg.mydata.messageout = \"unfortunately the Sales Manual appears to be missing so I can't check the date at this time\";\n\nvar assist_out=global.get('assist_out');\nmsg.assist_out = {};\nmsg.assist_out=assist_out;\nvar intent=assist_out.intents[0].intent;\nmsg.intent={};\nmsg.intent=intent\nvar lifecycle_date=assist_out.context.Lifecycle_date;\nmsg.lifecycle_date={};\nmsg.lifecycle_date=lifecycle_date;\n\nreturn msg;","outputs":1,"noerr":0,"x":370,"y":260,"wires":[["2aa1f2b5.9daede"]]},{"id":"84672a90.5808b8","type":"function","z":"ac6e16ef.6f7d8","name":"Set Watson Assistant Creds","func":"var apikey = env.get('apikey');\nvar endpoint = env.get('endpoint');\nvar workspace_id = env.get('workspace_id')\n\nmsg.params.apikey = apikey;\nmsg.params.endpoint = endpoint;\nmsg.params.workspace_id = workspace_id;\nreturn msg;","outputs":1,"noerr":0,"x":220,"y":240,"wires":[["68cb668c.0bfb48"]]},{"id":"9b946ae0.e6d8d8","type":"json","z":"ac6e16ef.6f7d8","name":"","property":"payload","action":"","pretty":false,"x":110,"y":480,"wires":[["15c1a601.086dda"]]}]
+[
+    {
+        "id": "ac6e16ef.6f7d8",
+        "type": "tab",
+        "label": "Front End Flow",
+        "disabled": false,
+        "info": "What this is intended to do is help answer a question I and my colleagues get asked a lot, which is \"When does this IBM Power System stop being sold/reach end of support?\".\r\n\r\nSo, my first pass at this helps answer that question.\r\n\r\nI am running this version in a Docker Container on an IBM Power System.\r\n\r\nIt should also work elsewhere, but you will need the Python scripts and the libraries they use installed in your image."
+    },
+    {
+        "id": "17c22889.b7099f",
+        "type": "http in",
+        "z": "ac6e16ef.6f7d8",
+        "name": "BOT Home Page",
+        "url": "/bot",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 100,
+        "y": 760,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "4de6563d.9e174",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "HTML",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<!--\n# Copyright 2018 IBM\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n-->\n\n<html>\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>\n\t  My BOT\n    </title>\n    <style>\n        {{{payload.style}}}\n    </style>\n  </head>\n  <body>\n\n    <div class=\"main\">\n      <div id=\"no-script\"class=\"bg-info\">\n        This application needs JavaScript enabled in your browser!\n      </div>\n      <div id=\"id_contextdump\"></div>\n\n      <h1>My BOT</h1>\n      <div id=id_botchathistory>\n\t  </div>\n\t  \n\t  <div class =\"input\">\n\t      <form>\n            <label for=\"id_chattext\">Your Input: </label>\n            <input type=\"text\" name=\"chattext\" id=\"id_chattext\">\n          </form>\n\t      <button onclick=\"javascript:onChatClick()\" id=\"id_enter\">Send</button>\n\t  </div>\n    </div>\n    \n    <script type=\"text/javascript\" src=\"https://code.jquery.com/jquery-2.1.4.min.js\"></script>\n    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js\"></script>\n\n    <script>{{{payload.script}}}</script>\n  </body>\n</html>\n",
+        "x": 710,
+        "y": 760,
+        "wires": [
+            [
+                "78fa1851.30e2c"
+            ]
+        ]
+    },
+    {
+        "id": "78fa1851.30e2c",
+        "type": "http response",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 870,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "16f9794.a9b9187",
+        "type": "http in",
+        "z": "ac6e16ef.6f7d8",
+        "name": "BOT REST API",
+        "url": "/seller_logic",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 120,
+        "y": 200,
+        "wires": [
+            [
+                "8788f7d6d101f120"
+            ]
+        ]
+    },
+    {
+        "id": "636050ff.385e58",
+        "type": "http response",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1130,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "34486d01.e586ba",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "JavaScript",
+        "field": "payload.script",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "$(document).ready(function() {\n    javascriptCheck();\n    $('#id_contextdump').hide();\n    enterbutton();\n    invokeAjax (\"Hello\");\n});\n\n// if javascript is enabled on the browser then can remove the warning message\nfunction javascriptCheck() {\n    $('#no-script').remove();\n}\n\n// creates div for interaction with bot      \nfunction createNewDiv(who, message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    if (who == \"Bot\") {\n        emoji = \"&#129302 Bot\";\n        html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    }\n    else if (who == \"Error\") {\n        emoji = \"&#128165 Error\";\n        html += '<div class=\"erricon\">' + emoji + '</div><div class=\"errspeak\">';\n    }\n    else if (who == \"You\") {\n        emoji = \"&#129489 You\";\n        html += '<div class=\"youicon\">' + emoji + '</div><div class=\"youspeak\">';\n    }\n    html +=  message;\n    html += '</div></div>'\n    return html;\n}\n\n// appends latest communication with bot to botchathistory\nfunction chat(person, txt) {\n    $('#id_botchathistory').append(createNewDiv(person, txt));\n}    \n\n// sets pressing of enter key to perform same action as send button\nfunction enterbutton(){\n    $(function() {\n        $(\"form input\").keypress(function (e) {\n        if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {\n             $('#id_enter').click();\n             return false;\n        } else {\n        return true;\n        }\n     });\n    });\n}\n\n// User has entered some text.\nfunction onChatClick() {\n    var txt = $('#id_chattext').val();\n    chat('You', txt); \n    invokeAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction processOK(response) {\n    console.log(response);\n    console.log(response.botresponse.messageout);\n    console.log(response.botresponse.messageout.output.text);\n    console.log(response.botresponse.messageout.context);\n    chat('Bot', response.botresponse.messageout.output.text); \n    $('#id_contextdump').data('convContext', response.botresponse.messageout.context);\n}\n      \nfunction processNotOK() {\n    chat('Error', 'Error whilst attempting to talk to Bot');\n}\n      \nfunction invokeAjax(message) {\n    var contextdata = $('#id_contextdump').data('convContext');\n    console.log('checking stashed context data');\n    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n    if (contextdata) {\n        ajaxData.context = contextdata;    \n    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'botchat',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}",
+        "output": "str",
+        "x": 530,
+        "y": 760,
+        "wires": [
+            [
+                "4de6563d.9e174"
+            ]
+        ]
+    },
+    {
+        "id": "217f70e5.991b58",
+        "type": "comment",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Conversation BOT Template",
+        "info": "",
+        "x": 139,
+        "y": 719,
+        "wires": []
+    },
+    {
+        "id": "6cdc89f2.8e9578",
+        "type": "comment",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Conversation REST API",
+        "info": "",
+        "x": 140,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "feb6bafb.c6ded8",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 2020,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "34dfc367.89d68c",
+        "type": "http in",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Healthcheck URL",
+        "url": "/healthz",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 100,
+        "y": 860,
+        "wires": [
+            [
+                "8b2314a3.f7adf"
+            ]
+        ]
+    },
+    {
+        "id": "2c990b94.1acf3c",
+        "type": "http response",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 470,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "8b2314a3.f7adf",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "ok",
+        "output": "str",
+        "x": 300,
+        "y": 860,
+        "wires": [
+            [
+                "2c990b94.1acf3c"
+            ]
+        ]
+    },
+    {
+        "id": "a5338fe4.fce08",
+        "type": "comment",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Healthcheck endpoint",
+        "info": "",
+        "x": 120,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "b994087e.93aa2",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Stylesheet",
+        "field": "payload.style",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "body {\n    font-size: 1em;\n    font-family: Arial, Helvetica, sans-serif;\n}\nh1 {\n    font-size: 2.5em;\n    color: black;\n    padding: 10px;\n}\n.main {\n    max-width: 800px;\n    background-color:#cccccc;\n    border: 2px solid #222222;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 50px;\n}\n.container {\n    border: 2px solid #333333;\n    background-color: #eeeeee;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 10px;\n}\nlabel {\n    margin: 20px 10px;\n}\ninput {\n    min-width: 60%;\n    padding: 5px;\n    margin: 5px;\n}\n.input {\n    text-align: center;\n}\n.container::after {\n    content: \"\";\n    clear: both;\n    display: table;\n}\n.boticon {\n    font-size: 2em;\n    width: 100px;\n    float: left;\n}\n.botspeak {\n    padding: 0px;\n    display: inline-block;\n    max-width: 80%;\n}\n.youicon {\n    font-size: 2em;\n    width: 100px;\n    float: right;\n    text-align: right;\n}\n.youspeak {\n    padding: 0px;\n    text-align: right;\n}\n.erricon {\n    font-size: 2em;\n    width: 200px;\n    float: left;\n    color: red;\n}\n.errspeak {\n    padding: 0px;\n    color: darkred;\n    display: inline-block;\n    max-width: 60%;\n}\nbutton {\n    min-width: 60%;\n    border-radius: 5px;\n    padding: 5px;\n    margin: 5px;\n    background-color: #dddddd;\n    color: black;\n}",
+        "output": "str",
+        "x": 330,
+        "y": 760,
+        "wires": [
+            [
+                "34486d01.e586ba"
+            ]
+        ]
+    },
+    {
+        "id": "51762601bc13ecc1",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "HTML Template picking demo",
+        "field": "payload.botresponse.messageout.output.text",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n<p>Hello. I am a little tool, built by David Spurway using OpenShift on IBM Power, to help you run some demos on IBM Power. They are designed to help build your confidence around modernisation with IBM Power, so you can talk to your customers about this topic. Where possible, I will take care of the overly techie bits, like typing on the command line, and let you focus instead on the business benefits!</p>\n<p>IBM is about \"Show not tell\", but that is not always easy with IBM Power. As a Seller, you may not have experience of some of the more modern things we want our customer to do with IBM Power. So, I have a range of demos you can use to build your confidence with those topics. You should be focused on business benefit, not command line tech, so, these demos are built with that focus. Pick a demo option to begin, from this list:</p>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Pop on Python\";onChatClick();'>Pop on Python</button>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Patch IBM Power\";onChatClick();'>Patch IBM Power</button>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Upgrade IBM Power\";onChatClick();'>Upgrade IBM Power</button>\n<button onclick='document.getElementById(\"id_chattext\").value=\"AI on IBM Power\";onChatClick();'>AI on IBM Power</button>",
+        "output": "str",
+        "x": 830,
+        "y": 240,
+        "wires": [
+            [
+                "636050ff.385e58"
+            ]
+        ]
+    },
+    {
+        "id": "7417a2d2b537c9a2",
+        "type": "switch",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Check for hello",
+        "property": "payload.msgdata",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "Hello",
+                "vt": "str"
+            },
+            {
+                "t": "neq",
+                "v": "Hello",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 2,
+        "x": 160,
+        "y": 260,
+        "wires": [
+            [
+                "51762601bc13ecc1"
+            ],
+            [
+                "914af2cc49ffe895"
+            ]
+        ]
+    },
+    {
+        "id": "ef87c83bd27dc292",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "HTML Template picking Pop on Power asset",
+        "field": "payload.botresponse.messageout.output.text",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n<p>So, you want to pop Python onto IBM Power. We can do this using our own Techzone, so you can do this without any risk. Before we move on with the demo, it may help to set out the customer challenge we are addressing here, how adding Python (and other Open Source packages) onto IBM Power can help and what the next steps are after that. So, pick one of the follow options to learn more, or move on to the demo:</p>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Pop on Python Video\";onChatClick();'>Quick video explaining the 1-pager</button>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Pop on Python 1-Pager\";onChatClick();'>1-pager for you to use with your customers</button>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Pop on Python Demo\";onChatClick();onDemoClick();'>The demo itself</button>\n",
+        "output": "str",
+        "x": 870,
+        "y": 280,
+        "wires": [
+            [
+                "636050ff.385e58"
+            ]
+        ]
+    },
+    {
+        "id": "6f79fb2dd35de9e3",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "HTML Template Pop on Power Video",
+        "field": "payload.botresponse.messageout.output.text",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n{{#url}}\n<video width=\"600\" controls autoplay>\n  <source src={{.}} type=\"video/mp4\">\n</video>\n{{/url}}\n<p>What would you like to do next? Maybe check out the 1-pager, or move on to the demo:</p>\n<button onclick='document.getElementById(\"id_chattext\").value=\"\";onChatClick();'>Back to the start</button>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Pop on Python 1-Pager\";onChatClick();'>1-pager for you to use with your customers</button>\n<button onclick='document.getElementById(\"id_chattext\").value=\"Pop on Python Demo\";onChatClick();'>The demo itself</button>\n",
+        "output": "str",
+        "x": 850,
+        "y": 320,
+        "wires": [
+            [
+                "636050ff.385e58"
+            ]
+        ]
+    },
+    {
+        "id": "8788f7d6d101f120",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Set demo",
+        "func": "msg.demo = \"\";\n\nmsgdata = msg.payload.msgdata;\n\ndemos = [\"\", \"Pop on Python\", \"Patch IBM Power\", \"Upgrade IBM Power\", \"AI on IBM Power\"];\n\nlet i = 0\n\nwhile (i < demos.length) {\n    if (msgdata.includes(demos[i])) {\n        msg.demo = demos[i];\n    } \n    i++;\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 200,
+        "wires": [
+            [
+                "e6c7141db3188fe3"
+            ]
+        ]
+    },
+    {
+        "id": "e6c7141db3188fe3",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Set asset",
+        "func": "msg.asset = \"\";\n\nmsgdata = msg.payload.msgdata;\n\nassets = [\"\", \"Video\", \"1-Pager\", \"Demo\"];\n\nlet i = 0\n\nwhile (i < assets.length) {\n    if (msgdata.includes(assets[i])) {\n        msg.asset = assets[i];\n    } \n    i++;\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 200,
+        "wires": [
+            [
+                "7417a2d2b537c9a2"
+            ]
+        ]
+    },
+    {
+        "id": "14c99c0b7b1b5b07",
+        "type": "switch",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Check which asset",
+        "property": "asset",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "Video",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "1-Pager",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Demo",
+                "vt": "str"
+            },
+            {
+                "t": "neq",
+                "v": "Demo",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 4,
+        "x": 150,
+        "y": 360,
+        "wires": [
+            [
+                "9a3ee1425bdabb32"
+            ],
+            [],
+            [
+                "31c3f56b70d7e066"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "914af2cc49ffe895",
+        "type": "switch",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Check for asset",
+        "property": "asset",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "empty"
+            },
+            {
+                "t": "nempty"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 2,
+        "x": 360,
+        "y": 280,
+        "wires": [
+            [
+                "ef87c83bd27dc292"
+            ],
+            [
+                "14c99c0b7b1b5b07"
+            ]
+        ]
+    },
+    {
+        "id": "9a3ee1425bdabb32",
+        "type": "switch",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Check which demo video",
+        "property": "demo",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "Pop on Python",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Patch IBM Power",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Upgrade IBM Power",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "AI on IBM Power",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 4,
+        "x": 390,
+        "y": 360,
+        "wires": [
+            [
+                "fd0c224fb341792b"
+            ],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "fd0c224fb341792b",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Set url for video",
+        "func": "url=\"https://seller-demo-images.s3.us-east.cloud-object-storage.appdomain.cloud/No%20Mr%20Bond%20I%20Expect%20You%20To%20Modernize.mp4\"\nmsg.url = \"\"\nmsg.url = url\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 340,
+        "wires": [
+            [
+                "6f79fb2dd35de9e3"
+            ]
+        ]
+    },
+    {
+        "id": "53d2b3a96e4c0d25",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1130,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "31c3f56b70d7e066",
+        "type": "switch",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Check which demo",
+        "property": "demo",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "Pop on Python",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Patch IBM Power",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Upgrade IBM Power",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "AI on IBM Power",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 4,
+        "x": 370,
+        "y": 460,
+        "wires": [
+            [
+                "3faa72adfc174f0f"
+            ],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "d7fd7d4aa2891bf4",
+        "type": "ssh-v3",
+        "z": "ac6e16ef.6f7d8",
+        "name": "SSH to Techzone",
+        "conf": "ecd3cb95e344f46a",
+        "debug": false,
+        "x": 830,
+        "y": 520,
+        "wires": [
+            [
+                "ebbe13d5ced2753f"
+            ]
+        ]
+    },
+    {
+        "id": "d43e8a33514ce3e4",
+        "type": "inject",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "sudo ./dnf_aixtoolbox.sh -y",
+        "payloadType": "str",
+        "x": 750,
+        "y": 580,
+        "wires": [
+            [
+                "d7fd7d4aa2891bf4"
+            ]
+        ]
+    },
+    {
+        "id": "ebbe13d5ced2753f",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "8d60d22123839791",
+        "type": "http response",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 870,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "313bbefd0570c78c",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "HTML",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<!--\n# Copyright 2018 IBM\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n-->\n\n<html>\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>\n\t  Seller Demos\n    </title>\n    <style>\n        {{{payload.style}}}\n    </style>\n  </head>\n  <body>\n\n    <div class=\"main\">\n      <div id=\"no-script\"class=\"bg-info\">\n        This application needs JavaScript enabled in your browser!\n      </div>\n<!--      <div id=\"id_contextdump\"></div>-->\n\n      <h1>Seller Demos</h1>\n      <div id=id_botchathistory>\n\t  </div>\n\t  \n\t  <div class =\"input\">\n\t      <form>\n            <label for=\"id_chattext\">Your Input: </label>\n            <input type=\"text\" name=\"chattext\" id=\"id_chattext\">\n          </form>\n\t      <button onclick=\"javascript:onChatClick()\" id=\"id_enter\">Send</button>\n\t  </div>\n    </div>\n    \n    <script type=\"text/javascript\" src=\"https://code.jquery.com/jquery-2.1.4.min.js\"></script>\n    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js\"></script>\n\n    <script>{{{payload.script}}}</script>\n  </body>\n</html>\n",
+        "x": 710,
+        "y": 660,
+        "wires": [
+            [
+                "8d60d22123839791"
+            ]
+        ]
+    },
+    {
+        "id": "365e91acc62a0a16",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "JavaScript",
+        "field": "payload.script",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "$(document).ready(function() {\n    javascriptCheck();\n//    $('#id_contextdump').hide();\n    enterbutton();\n    invokeAjax (\"Hello\");\n});\n\n// if javascript is enabled on the browser then can remove the warning message\nfunction javascriptCheck() {\n    $('#no-script').remove();\n}\n\n// creates div for interaction with bot      \nfunction createNewDiv(who, message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    if (who == \"Bot\") {\n        emoji = \"&#129302 Bot\";\n        html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    }\n    else if (who == \"Error\") {\n        emoji = \"&#128165 Error\";\n        html += '<div class=\"erricon\">' + emoji + '</div><div class=\"errspeak\">';\n    }\n    else if (who == \"You\") {\n        emoji = \"&#129489 You\";\n        html += '<div class=\"youicon\">' + emoji + '</div><div class=\"youspeak\">';\n    }\n    html +=  message;\n    html += '</div></div>'\n    return html;\n}\n\nfunction createCmdOut(message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    emoji = \"&#129302 Bot\";\n    html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    html += '<div class=\"cmdout\">';\n    html +=  message;\n    html += '</div></div></div>'\n    return html;\n}\n\n// appends latest communication with bot to botchathistory\nfunction chat(person, txt) {\n    $('#id_botchathistory').append(createNewDiv(person, txt));\n}    \n\nfunction CmdOut(txt) {\n    $('#id_botchathistory').append(createCmdOut(\"Command Output Goes Here\"));\n} \n\n// sets pressing of enter key to perform same action as send button\nfunction enterbutton(){\n    $(function() {\n        $(\"form input\").keypress(function (e) {\n        if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {\n             $('#id_enter').click();\n             return false;\n        } else {\n        return true;\n        }\n     });\n    });\n}\n\n// User has entered some text.\nfunction onChatClick() {\n    var txt = $('#id_chattext').val();\n    chat('You', txt); \n    invokeAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction onDemoClick() {\n    var txt = $('#id_chattext').val();\n//    chat('You', txt); \n//    CmdOut(txt);\n    OutputToAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction processOK(response) {\n    chat('Bot', response.botresponse.messageout.output.text); \n}\n      \nfunction processNotOK() {\n    chat('Error', 'Error whilst attempting to talk to Bot');\n}\n      \nfunction invokeAjax(message) {\n//    var contextdata = $('#id_contextdump').data('convContext');\n//    console.log('checking stashed context data');\n//    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n//    if (contextdata) {\n//        ajaxData.context = contextdata;    \n//    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'seller_logic',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}\n\nfunction OutputToAjax(message) {\n//    var contextdata = $('#id_contextdump').data('convContext');\n//    console.log('checking stashed context data');\n//    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n//    if (contextdata) {\n//        ajaxData.context = contextdata;    \n//    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'run_demo',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}",
+        "output": "str",
+        "x": 530,
+        "y": 660,
+        "wires": [
+            [
+                "313bbefd0570c78c"
+            ]
+        ]
+    },
+    {
+        "id": "0f03ad9dc0861abf",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Stylesheet",
+        "field": "payload.style",
+        "fieldType": "msg",
+        "format": "javascript",
+        "syntax": "mustache",
+        "template": "body {\n    font-size: 1em;\n    font-family: Arial, Helvetica, sans-serif;\n}\nh1 {\n    font-size: 2.5em;\n    color: black;\n    padding: 10px;\n}\n.main {\n    background-color:#cccccc;\n    border: 2px solid #222222;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 50px;\n}\n.container {\n    border: 2px solid #333333;\n    background-color: #eeeeee;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 10px;\n}\n.cmdout {\n    border: 2px solid #333333;\n    color: #FFFFFF;\n    background-color: #000000;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 10px;\n}\nlabel {\n    margin: 20px 10px;\n}\ninput {\n    min-width: 60%;\n    padding: 5px;\n    margin: 5px;\n}\n.input {\n    text-align: center;\n}\n.container::after {\n    content: \"\";\n    clear: both;\n    display: table;\n}\n.boticon {\n    font-size: 2em;\n    width: 100px;\n    float: left;\n}\n.botspeak {\n    padding: 0px;\n    display: inline-block;\n    max-width: 80%;\n}\n.youicon {\n    font-size: 2em;\n    width: 100px;\n    float: right;\n    text-align: right;\n}\n.youspeak {\n    padding: 0px;\n    text-align: right;\n}\n.erricon {\n    font-size: 2em;\n    width: 200px;\n    float: left;\n    color: red;\n}\n.errspeak {\n    padding: 0px;\n    color: darkred;\n    display: inline-block;\n    max-width: 60%;\n}\nbutton {\n    min-width: 60%;\n    border-radius: 5px;\n    padding: 5px;\n    margin: 5px;\n    background-color: #dddddd;\n    color: black;\n}",
+        "output": "str",
+        "x": 330,
+        "y": 660,
+        "wires": [
+            [
+                "365e91acc62a0a16"
+            ]
+        ]
+    },
+    {
+        "id": "a78fc060797a337a",
+        "type": "http in",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Seller Demo Home Page",
+        "url": "/seller_home",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 130,
+        "y": 660,
+        "wires": [
+            [
+                "0f03ad9dc0861abf"
+            ]
+        ]
+    },
+    {
+        "id": "155d16498cbb2fca",
+        "type": "http in",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Run Demo URL",
+        "url": "/run_demo",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 100,
+        "y": 960,
+        "wires": [
+            [
+                "5645d1abe884528c"
+            ]
+        ]
+    },
+    {
+        "id": "fb5024a554baea36",
+        "type": "http response",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1130,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "31d561417692433b",
+        "type": "comment",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Test endpoint",
+        "info": "",
+        "x": 90,
+        "y": 920,
+        "wires": []
+    },
+    {
+        "id": "1b1c5012197486f8",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1070,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "d1c299d7eee1db13",
+        "type": "ssh-v3",
+        "z": "ac6e16ef.6f7d8",
+        "name": "SSH to Techzone",
+        "conf": "ecd3cb95e344f46a",
+        "debug": false,
+        "x": 490,
+        "y": 960,
+        "wires": [
+            [
+                "df9b77914d832080",
+                "485366ed31b33cff"
+            ]
+        ]
+    },
+    {
+        "id": "5645d1abe884528c",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Run a command",
+        "func": "msg.payload = \"ls\";\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 960,
+        "wires": [
+            [
+                "d1c299d7eee1db13"
+            ]
+        ]
+    },
+    {
+        "id": "7570019af38606e3",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "HTML Template Return Cmd Out",
+        "field": "payload.botresponse.messageout.output.text",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n",
+        "output": "str",
+        "x": 920,
+        "y": 960,
+        "wires": [
+            [
+                "1b1c5012197486f8",
+                "fb5024a554baea36"
+            ]
+        ]
+    },
+    {
+        "id": "485366ed31b33cff",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 690,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "df9b77914d832080",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Set botresponse",
+        "func": "var stdout=[];\nstdout = msg.session.stdout;\n\nmsg.payload = {};\nmsg.payload.botresponse = {};\nmsg.payload.botresponse.messageout = {};\nmsg.payload.botresponse.messageout.output = {};\nmsg.payload.botresponse.messageout.output.text = {};\n\nmsg.payload.botresponse.messageout.output.text = stdout\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 960,
+        "wires": [
+            [
+                "7570019af38606e3"
+            ]
+        ]
+    },
+    {
+        "id": "3faa72adfc174f0f",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Set commands to run",
+        "func": "cmds=\"ls\";\nmsg.cmds = cmds;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 580,
+        "y": 440,
+        "wires": [
+            [
+                "711df91327439328"
+            ]
+        ]
+    },
+    {
+        "id": "711df91327439328",
+        "type": "template",
+        "z": "ac6e16ef.6f7d8",
+        "name": "HTML Template Run Demo",
+        "field": "payload.botresponse.messageout.output.text",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n{{#cmds}}\n<p>We are about to run the following commands:<br>{{.}}\n</p>\n{{/cmds}}\n<p>They may take a little while to run...</p>",
+        "output": "str",
+        "x": 820,
+        "y": 440,
+        "wires": [
+            [
+                "636050ff.385e58",
+                "53d2b3a96e4c0d25"
+            ]
+        ]
+    },
+    {
+        "id": "ecd3cb95e344f46a",
+        "type": "ssh-conf",
+        "ssh": "",
+        "name": "cecuser@p214089-pvs1.pvs.cecc.ihost.com",
+        "userlabel": "cecuser@p214089-pvs1.pvs.cecc.ihost.com"
+    }
+]
