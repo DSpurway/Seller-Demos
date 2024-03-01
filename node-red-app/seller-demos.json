@@ -7,48 +7,11 @@
         "info": "What this is intended to do is help answer a question I and my colleagues get asked a lot, which is \"When does this IBM Power System stop being sold/reach end of support?\".\r\n\r\nSo, my first pass at this helps answer that question.\r\n\r\nI am running this version in a Docker Container on an IBM Power System.\r\n\r\nIt should also work elsewhere, but you will need the Python scripts and the libraries they use installed in your image."
     },
     {
-        "id": "17c22889.b7099f",
-        "type": "http in",
-        "z": "ac6e16ef.6f7d8",
-        "name": "BOT Home Page",
-        "url": "/bot",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 100,
-        "y": 760,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "4de6563d.9e174",
-        "type": "template",
-        "z": "ac6e16ef.6f7d8",
-        "name": "HTML",
-        "field": "payload",
-        "fieldType": "msg",
-        "format": "handlebars",
-        "syntax": "mustache",
-        "template": "<!--\n# Copyright 2018 IBM\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n-->\n\n<html>\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>\n\t  My BOT\n    </title>\n    <style>\n        {{{payload.style}}}\n    </style>\n  </head>\n  <body>\n\n    <div class=\"main\">\n      <div id=\"no-script\"class=\"bg-info\">\n        This application needs JavaScript enabled in your browser!\n      </div>\n      <div id=\"id_contextdump\"></div>\n\n      <h1>My BOT</h1>\n      <div id=id_botchathistory>\n\t  </div>\n\t  \n\t  <div class =\"input\">\n\t      <form>\n            <label for=\"id_chattext\">Your Input: </label>\n            <input type=\"text\" name=\"chattext\" id=\"id_chattext\">\n          </form>\n\t      <button onclick=\"javascript:onChatClick()\" id=\"id_enter\">Send</button>\n\t  </div>\n    </div>\n    \n    <script type=\"text/javascript\" src=\"https://code.jquery.com/jquery-2.1.4.min.js\"></script>\n    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js\"></script>\n\n    <script>{{{payload.script}}}</script>\n  </body>\n</html>\n",
-        "x": 710,
-        "y": 760,
-        "wires": [
-            [
-                "78fa1851.30e2c"
-            ]
-        ]
-    },
-    {
-        "id": "78fa1851.30e2c",
-        "type": "http response",
-        "z": "ac6e16ef.6f7d8",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 870,
-        "y": 760,
-        "wires": []
+        "id": "ecd3cb95e344f46a",
+        "type": "ssh-conf",
+        "ssh": "",
+        "name": "cecuser on AIX PowerVS instance",
+        "userlabel": "cecuser on AIX PowerVS instance"
     },
     {
         "id": "16f9794.a9b9187",
@@ -76,35 +39,6 @@
         "headers": {},
         "x": 1130,
         "y": 280,
-        "wires": []
-    },
-    {
-        "id": "34486d01.e586ba",
-        "type": "template",
-        "z": "ac6e16ef.6f7d8",
-        "name": "JavaScript",
-        "field": "payload.script",
-        "fieldType": "msg",
-        "format": "javascript",
-        "syntax": "mustache",
-        "template": "$(document).ready(function() {\n    javascriptCheck();\n    $('#id_contextdump').hide();\n    enterbutton();\n    invokeAjax (\"Hello\");\n});\n\n// if javascript is enabled on the browser then can remove the warning message\nfunction javascriptCheck() {\n    $('#no-script').remove();\n}\n\n// creates div for interaction with bot      \nfunction createNewDiv(who, message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    if (who == \"Bot\") {\n        emoji = \"&#129302 Bot\";\n        html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    }\n    else if (who == \"Error\") {\n        emoji = \"&#128165 Error\";\n        html += '<div class=\"erricon\">' + emoji + '</div><div class=\"errspeak\">';\n    }\n    else if (who == \"You\") {\n        emoji = \"&#129489 You\";\n        html += '<div class=\"youicon\">' + emoji + '</div><div class=\"youspeak\">';\n    }\n    html +=  message;\n    html += '</div></div>'\n    return html;\n}\n\n// appends latest communication with bot to botchathistory\nfunction chat(person, txt) {\n    $('#id_botchathistory').append(createNewDiv(person, txt));\n}    \n\n// sets pressing of enter key to perform same action as send button\nfunction enterbutton(){\n    $(function() {\n        $(\"form input\").keypress(function (e) {\n        if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {\n             $('#id_enter').click();\n             return false;\n        } else {\n        return true;\n        }\n     });\n    });\n}\n\n// User has entered some text.\nfunction onChatClick() {\n    var txt = $('#id_chattext').val();\n    chat('You', txt); \n    invokeAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction processOK(response) {\n    console.log(response);\n    console.log(response.botresponse.messageout);\n    console.log(response.botresponse.messageout.output.text);\n    console.log(response.botresponse.messageout.context);\n    chat('Bot', response.botresponse.messageout.output.text); \n    $('#id_contextdump').data('convContext', response.botresponse.messageout.context);\n}\n      \nfunction processNotOK() {\n    chat('Error', 'Error whilst attempting to talk to Bot');\n}\n      \nfunction invokeAjax(message) {\n    var contextdata = $('#id_contextdump').data('convContext');\n    console.log('checking stashed context data');\n    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n    if (contextdata) {\n        ajaxData.context = contextdata;    \n    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'botchat',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}",
-        "output": "str",
-        "x": 530,
-        "y": 760,
-        "wires": [
-            [
-                "4de6563d.9e174"
-            ]
-        ]
-    },
-    {
-        "id": "217f70e5.991b58",
-        "type": "comment",
-        "z": "ac6e16ef.6f7d8",
-        "name": "Conversation BOT Template",
-        "info": "",
-        "x": 139,
-        "y": 719,
         "wires": []
     },
     {
@@ -188,25 +122,6 @@
         "x": 120,
         "y": 820,
         "wires": []
-    },
-    {
-        "id": "b994087e.93aa2",
-        "type": "template",
-        "z": "ac6e16ef.6f7d8",
-        "name": "Stylesheet",
-        "field": "payload.style",
-        "fieldType": "msg",
-        "format": "javascript",
-        "syntax": "mustache",
-        "template": "body {\n    font-size: 1em;\n    font-family: Arial, Helvetica, sans-serif;\n}\nh1 {\n    font-size: 2.5em;\n    color: black;\n    padding: 10px;\n}\n.main {\n    max-width: 800px;\n    background-color:#cccccc;\n    border: 2px solid #222222;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 50px;\n}\n.container {\n    border: 2px solid #333333;\n    background-color: #eeeeee;\n    border-radius: 20px;\n    padding: 10px;\n    margin: 10px;\n}\nlabel {\n    margin: 20px 10px;\n}\ninput {\n    min-width: 60%;\n    padding: 5px;\n    margin: 5px;\n}\n.input {\n    text-align: center;\n}\n.container::after {\n    content: \"\";\n    clear: both;\n    display: table;\n}\n.boticon {\n    font-size: 2em;\n    width: 100px;\n    float: left;\n}\n.botspeak {\n    padding: 0px;\n    display: inline-block;\n    max-width: 80%;\n}\n.youicon {\n    font-size: 2em;\n    width: 100px;\n    float: right;\n    text-align: right;\n}\n.youspeak {\n    padding: 0px;\n    text-align: right;\n}\n.erricon {\n    font-size: 2em;\n    width: 200px;\n    float: left;\n    color: red;\n}\n.errspeak {\n    padding: 0px;\n    color: darkred;\n    display: inline-block;\n    max-width: 60%;\n}\nbutton {\n    min-width: 60%;\n    border-radius: 5px;\n    padding: 5px;\n    margin: 5px;\n    background-color: #dddddd;\n    color: black;\n}",
-        "output": "str",
-        "x": 330,
-        "y": 760,
-        "wires": [
-            [
-                "34486d01.e586ba"
-            ]
-        ]
     },
     {
         "id": "51762601bc13ecc1",
@@ -473,23 +388,6 @@
         ]
     },
     {
-        "id": "53d2b3a96e4c0d25",
-        "type": "debug",
-        "z": "ac6e16ef.6f7d8",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1130,
-        "y": 440,
-        "wires": []
-    },
-    {
         "id": "31c3f56b70d7e066",
         "type": "switch",
         "z": "ac6e16ef.6f7d8",
@@ -539,59 +437,13 @@
         "name": "SSH to Techzone",
         "conf": "ecd3cb95e344f46a",
         "debug": false,
-        "x": 830,
-        "y": 520,
+        "x": 610,
+        "y": 480,
         "wires": [
             [
-                "ebbe13d5ced2753f"
+                "8c5b02cba20a4a2c"
             ]
         ]
-    },
-    {
-        "id": "d43e8a33514ce3e4",
-        "type": "inject",
-        "z": "ac6e16ef.6f7d8",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "sudo ./dnf_aixtoolbox.sh -y",
-        "payloadType": "str",
-        "x": 750,
-        "y": 580,
-        "wires": [
-            [
-                "d7fd7d4aa2891bf4"
-            ]
-        ]
-    },
-    {
-        "id": "ebbe13d5ced2753f",
-        "type": "debug",
-        "z": "ac6e16ef.6f7d8",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1010,
-        "y": 520,
-        "wires": []
     },
     {
         "id": "8d60d22123839791",
@@ -631,7 +483,7 @@
         "fieldType": "msg",
         "format": "javascript",
         "syntax": "mustache",
-        "template": "$(document).ready(function() {\n    javascriptCheck();\n//    $('#id_contextdump').hide();\n    enterbutton();\n    invokeAjax (\"Hello\");\n});\n\n// if javascript is enabled on the browser then can remove the warning message\nfunction javascriptCheck() {\n    $('#no-script').remove();\n}\n\n// creates div for interaction with bot      \nfunction createNewDiv(who, message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    if (who == \"Bot\") {\n        emoji = \"&#129302 Bot\";\n        html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    }\n    else if (who == \"Error\") {\n        emoji = \"&#128165 Error\";\n        html += '<div class=\"erricon\">' + emoji + '</div><div class=\"errspeak\">';\n    }\n    else if (who == \"You\") {\n        emoji = \"&#129489 You\";\n        html += '<div class=\"youicon\">' + emoji + '</div><div class=\"youspeak\">';\n    }\n    html +=  message;\n    html += '</div></div>'\n    return html;\n}\n\nfunction createCmdOut(message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    emoji = \"&#129302 Bot\";\n    html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    html += '<div class=\"cmdout\">';\n    html +=  message;\n    html += '</div></div></div>'\n    return html;\n}\n\n// appends latest communication with bot to botchathistory\nfunction chat(person, txt) {\n    $('#id_botchathistory').append(createNewDiv(person, txt));\n}    \n\nfunction CmdOut(txt) {\n    $('#id_botchathistory').append(createCmdOut(\"Command Output Goes Here\"));\n} \n\n// sets pressing of enter key to perform same action as send button\nfunction enterbutton(){\n    $(function() {\n        $(\"form input\").keypress(function (e) {\n        if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {\n             $('#id_enter').click();\n             return false;\n        } else {\n        return true;\n        }\n     });\n    });\n}\n\n// User has entered some text.\nfunction onChatClick() {\n    var txt = $('#id_chattext').val();\n    chat('You', txt); \n    invokeAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction onDemoClick() {\n    var txt = $('#id_chattext').val();\n//    chat('You', txt); \n//    CmdOut(txt);\n    OutputToAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction processOK(response) {\n    chat('Bot', response.botresponse.messageout.output.text); \n}\n      \nfunction processNotOK() {\n    chat('Error', 'Error whilst attempting to talk to Bot');\n}\n      \nfunction invokeAjax(message) {\n//    var contextdata = $('#id_contextdump').data('convContext');\n//    console.log('checking stashed context data');\n//    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n//    if (contextdata) {\n//        ajaxData.context = contextdata;    \n//    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'seller_logic',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}\n\nfunction OutputToAjax(message) {\n//    var contextdata = $('#id_contextdump').data('convContext');\n//    console.log('checking stashed context data');\n//    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n//    if (contextdata) {\n//        ajaxData.context = contextdata;    \n//    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'run_demo',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}",
+        "template": "$(document).ready(function() {\n    javascriptCheck();\n//    $('#id_contextdump').hide();\n    enterbutton();\n    invokeAjax (\"Hello\");\n});\n\n// if javascript is enabled on the browser then can remove the warning message\nfunction javascriptCheck() {\n    $('#no-script').remove();\n}\n\n// creates div for interaction with bot      \nfunction createNewDiv(who, message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    if (who == \"Bot\") {\n        emoji = \"&#129302 Bot\";\n        html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    }\n    else if (who == \"Error\") {\n        emoji = \"&#128165 Error\";\n        html += '<div class=\"erricon\">' + emoji + '</div><div class=\"errspeak\">';\n    }\n    else if (who == \"You\") {\n        emoji = \"&#129489 You\";\n        html += '<div class=\"youicon\">' + emoji + '</div><div class=\"youspeak\">';\n    }\n    html +=  message;\n    html += '</div></div>'\n    return html;\n}\n\nfunction createCmdOut(message) {\n    var emoji;\n    var html = '<div class=\"container\">';\n    emoji = \"&#129302 Bot\";\n    html += '<div class=\"boticon\">' + emoji + '</div><div class=\"botspeak\">';\n    html += '<div class=\"cmdout\">';\n    html +=  message;\n    html += '</div></div></div>'\n    return html;\n}\n\n// appends latest communication with bot to botchathistory\nfunction chat(person, txt) {\n    $('#id_botchathistory').append(createNewDiv(person, txt));\n}    \n\nfunction CmdOut(txt) {\n    $('#id_botchathistory').append(createCmdOut(\"Command Output Goes Here\"));\n} \n\n// sets pressing of enter key to perform same action as send button\nfunction enterbutton(){\n    $(function() {\n        $(\"form input\").keypress(function (e) {\n        if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) {\n             $('#id_enter').click();\n             return false;\n        } else {\n        return true;\n        }\n     });\n    });\n}\n\n// User has entered some text.\nfunction onChatClick() {\n    var txt = $('#id_chattext').val();\n    chat('You', txt); \n    invokeAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction onDemoClick() {\n    var txt = $('#id_chattext').val();\n//    chat('You', txt); \n//    CmdOut(txt);\n    OutputToAjax(txt);\n    $('#id_chattext').val('');\n}\n\nfunction processOK(response) {\n    chat('Bot', response.botresponse.messageout.output.text);\n    OutputToAjax(txt);\n}\n      \nfunction processNotOK() {\n    chat('Error', 'Error whilst attempting to talk to Bot');\n}\n\nfunction processOKAndRepeat(response) {\n    chat('Bot', response.botresponse.messageout.output.text); \n}\n      \nfunction invokeAjax(message) {\n//    var contextdata = $('#id_contextdump').data('convContext');\n//    console.log('checking stashed context data');\n//    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n//    if (contextdata) {\n//        ajaxData.context = contextdata;    \n//    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'seller_logic',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    });\n}\n\nfunction OutputToAjax(message) {\n//    var contextdata = $('#id_contextdump').data('convContext');\n//    console.log('checking stashed context data');\n//    console.log(contextdata);\n        \n    var ajaxData = {};\n    ajaxData.msgdata = message;\n//    if (contextdata) {\n//        ajaxData.context = contextdata;    \n//    }\n\n    $.ajax({\n        type: 'POST',\n        url: 'run_demo',\n        data: ajaxData,\n        success: processOK,\n        error: processNotOK\n    })\n    \n    $.ajax({\n        type: 'POST',\n        url: 'return_output',\n        data: ajaxData,\n        success: processOKAndRepeat,\n    });\n}",
         "output": "str",
         "x": 530,
         "y": 660,
@@ -690,7 +542,7 @@
         "y": 960,
         "wires": [
             [
-                "5645d1abe884528c"
+                "68a3f8f928b5db07"
             ]
         ]
     },
@@ -701,7 +553,7 @@
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 1130,
+        "x": 1170,
         "y": 960,
         "wires": []
     },
@@ -709,27 +561,10 @@
         "id": "31d561417692433b",
         "type": "comment",
         "z": "ac6e16ef.6f7d8",
-        "name": "Test endpoint",
+        "name": "Show command output",
         "info": "",
-        "x": 90,
+        "x": 120,
         "y": 920,
-        "wires": []
-    },
-    {
-        "id": "1b1c5012197486f8",
-        "type": "debug",
-        "z": "ac6e16ef.6f7d8",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1070,
-        "y": 900,
         "wires": []
     },
     {
@@ -739,31 +574,11 @@
         "name": "SSH to Techzone",
         "conf": "ecd3cb95e344f46a",
         "debug": false,
-        "x": 490,
+        "x": 530,
         "y": 960,
         "wires": [
             [
-                "df9b77914d832080",
-                "485366ed31b33cff"
-            ]
-        ]
-    },
-    {
-        "id": "5645d1abe884528c",
-        "type": "function",
-        "z": "ac6e16ef.6f7d8",
-        "name": "Run a command",
-        "func": "msg.payload = \"ls\";\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 300,
-        "y": 960,
-        "wires": [
-            [
-                "d1c299d7eee1db13"
+                "3b737319e18d9991"
             ]
         ]
     },
@@ -778,31 +593,14 @@
         "syntax": "mustache",
         "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n",
         "output": "str",
-        "x": 920,
+        "x": 960,
         "y": 960,
         "wires": [
             [
-                "1b1c5012197486f8",
-                "fb5024a554baea36"
+                "fb5024a554baea36",
+                "a265c06ae3fc09a8"
             ]
         ]
-    },
-    {
-        "id": "485366ed31b33cff",
-        "type": "debug",
-        "z": "ac6e16ef.6f7d8",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 690,
-        "y": 900,
-        "wires": []
     },
     {
         "id": "df9b77914d832080",
@@ -815,8 +613,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 680,
-        "y": 960,
+        "x": 880,
+        "y": 920,
         "wires": [
             [
                 "7570019af38606e3"
@@ -828,7 +626,7 @@
         "type": "function",
         "z": "ac6e16ef.6f7d8",
         "name": "Set commands to run",
-        "func": "cmds=\"ls\";\nmsg.cmds = cmds;\nreturn msg;",
+        "func": "let output_file = \"output.txt\";\nlet cmds = \"\";\ncmds = \"curl -O https://public.dhe.ibm.com/aix/freeSoftware/aixtoolbox/ezinstall/ppc/dnf_aixtoolbox.sh\";\ncmds += \" > \" + output_file + \" 2>&1; \"\ncmds += \"chmod 744 dnf_aixtoolbox.sh\";\ncmds += \" >> \" + output_file + \" 2>&1; \";\ncmds += \"sudo ./dnf_aixtoolbox.sh -y\";\ncmds += \" >> \" + output_file + \" 2>&1\";\n\nmsg.payload=\"\";\nmsg.payload = cmds;\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -838,7 +636,7 @@
         "y": 440,
         "wires": [
             [
-                "711df91327439328"
+                "d7fd7d4aa2891bf4"
             ]
         ]
     },
@@ -851,22 +649,187 @@
         "fieldType": "msg",
         "format": "handlebars",
         "syntax": "mustache",
-        "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n{{#cmds}}\n<p>We are about to run the following commands:<br>{{.}}\n</p>\n{{/cmds}}\n<p>They may take a little while to run...</p>",
+        "template": "{{#payload.botresponse.messageout.output.text}}\n<br>{{.}}\n{{/payload.botresponse.messageout.output.text}}\n{{#cmd}}\n<p>We are about to run the following commands:<br>{{.}}\n</p>\n{{/cmd}}\n<p>They may take a little while to run...</p>",
         "output": "str",
-        "x": 820,
-        "y": 440,
+        "x": 1060,
+        "y": 480,
         "wires": [
             [
-                "636050ff.385e58",
-                "53d2b3a96e4c0d25"
+                "636050ff.385e58"
             ]
         ]
     },
     {
-        "id": "ecd3cb95e344f46a",
-        "type": "ssh-conf",
-        "ssh": "",
-        "name": "cecuser@p214089-pvs1.pvs.cecc.ihost.com",
-        "userlabel": "cecuser@p214089-pvs1.pvs.cecc.ihost.com"
+        "id": "8c5b02cba20a4a2c",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Reformat for response",
+        "func": "cmd = \"\";\ncmd = msg.payload;\n\nmsg.cmd = \"\";\nmsg.cmd = cmd;\n\nmsg.payload={};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 480,
+        "wires": [
+            [
+                "711df91327439328"
+            ]
+        ]
+    },
+    {
+        "id": "68a3f8f928b5db07",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Set up output snapshots",
+        "func": "let output_file = \"output.txt\";\nlet tempout = \"tempout.txt\";\n\nlet cmds = \"\";\ncmds = \"cp \" + output_file + \" \" + tempout + \"; \";\ncmds += \"echo > \" + output_file + \"; \";\ncmds += \"cat \" + tempout;\n\nmsg.payload=\"\";\nmsg.payload = cmds;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 310,
+        "y": 960,
+        "wires": [
+            [
+                "d1c299d7eee1db13",
+                "536ca356fcdef305"
+            ]
+        ]
+    },
+    {
+        "id": "eed9c58c60d48df4",
+        "type": "http in",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Return output URL",
+        "url": "/return_output",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 110,
+        "y": 1000,
+        "wires": [
+            [
+                "68d26655736617c6"
+            ]
+        ]
+    },
+    {
+        "id": "68d26655736617c6",
+        "type": "function",
+        "z": "ac6e16ef.6f7d8",
+        "name": "Output next snapshot",
+        "func": "let output_file = \"output.txt\";\nlet tempout = \"tempout.txt\";\n\nlet cmds = \"\";\ncmds = \"sleep 5 ; \";\ncmds += \"size=`wc -c output.txt | awk '{print $1}'`;\";\ncmds += \"if [ $size -gt 1 ] ; then \";\ncmds += \"cp \" + output_file + \" \" + tempout + \";\";\ncmds += \"echo > \" + output_file + \";\";\ncmds += \"cat \" + tempout + \";\";\ncmds += \"fi\";\n\nmsg.payload=\"\";\nmsg.payload = cmds;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 1000,
+        "wires": [
+            [
+                "d1c299d7eee1db13",
+                "211bd0a8f859d98d"
+            ]
+        ]
+    },
+    {
+        "id": "536ca356fcdef305",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 920,
+        "wires": []
+    },
+    {
+        "id": "211bd0a8f859d98d",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 530,
+        "y": 1040,
+        "wires": []
+    },
+    {
+        "id": "3b737319e18d9991",
+        "type": "switch",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "property": "session.stdout",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "nempty"
+            },
+            {
+                "t": "empty"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 690,
+        "y": 980,
+        "wires": [
+            [
+                "df9b77914d832080"
+            ],
+            [
+                "5f682370bc0aed41"
+            ]
+        ]
+    },
+    {
+        "id": "a265c06ae3fc09a8",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1130,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "5f682370bc0aed41",
+        "type": "debug",
+        "z": "ac6e16ef.6f7d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 810,
+        "y": 1040,
+        "wires": []
     }
 ]
